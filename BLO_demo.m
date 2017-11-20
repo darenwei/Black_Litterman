@@ -126,7 +126,7 @@ p_BL =p_BL.setPI(p_BL.ExcessHistoricalReturns);
 % Approach 2: Compute PI : Implied Eqm Excess returns
 p_BL =p_BL.setPI(p_BL.ExcessImpliedReturns);
 
-%Step 2 : Input views 
+%Step 2 : Input views
 
 % view 1  Long Bond 1% next year
 view1P = zeros(1,n);
@@ -167,7 +167,7 @@ p_BL.Q = [ view1Q; view2Q; view3Q; view4Q; view5Q; view6Q];
 % Step 3: Compute the confidence matrix Omega
 
 
-% confidence level [0,1] Alpha = 0  if 100% confident, Alpha = + inf if 0% confidence 
+% confidence level [0,1] Alpha = 0  if 100% confident, Alpha = + inf if 0% confidence
 
 Alpha = 1;  %% default
 p_BL = p_BL.setAlpha(Alpha);
@@ -204,18 +204,23 @@ p_BL = p_BL.computeBlackLitterman;
 
 %%  Compute portfolio weight
 
+
+% Compute three portfolio weights, 1, unconstrained maximum Sharpe Ratio
+% portfolio, 2, minimize risk given the level of return, 3, max return
+% given the level of risk
+
 % Initial portfolio weight, 40% long bond, 60% SP500
 wgt0 = zeros(n ,1);
 wgt0(2)=0.4;
 wgt0(6) = 0.6;
-[risk0, ret0] = estimatePortMoments(p_BL, wgt0);
+[risk0, ret0] = estimatePortMoments(p_BL, wgt0);  % compute the risk and volatility of the initial portfolio
 
-w1 = estimateMaxSharpeRatio(p_BL);  % maximum Sharpe Ratio portfolio
+w_maxSharpeRatio = estimateMaxSharpeRatio(p_BL);  % unconstrained maximum Sharpe Ratio portfolio
 
 
 % set portfolio constraint
 % e.g.  only rebalance up to 50% of total portfolio
-lb = zeros(n,1);     
+lb = zeros(n,1);
 lb(2) = 0.2;
 lb(6) = 0.3;
 
@@ -240,16 +245,16 @@ ylabel('Expected Return')
 text(sqrt(diag(cov))+0.0003,m,symbol,'FontSize',7); % Label ticker names
 
 hold on;
-plotFrontier(p_BL);
-
+plotFrontier(p_BL);              % plot the efficient frontier
 
 p_BL = setBounds(p_BL, lb, ub);
-w_new1 =  estimateFrontierByReturn(p_BL,ret0);
-w_new2 = estimateFrontierByRisk(p_BL,risk0);
 
-[risk1, ret1] = estimatePortMoments(p_BL, w1);
-[risk2, ret2] = estimatePortMoments(p_BL, w_new1 );
-[risk3, ret3] = estimatePortMoments(p_BL, w_new2 );
+w_sameReturn =  estimateFrontierByReturn(p_BL,ret0);    % compute min risk portfolio weight
+w_sameRisk = estimateFrontierByRisk(p_BL,risk0);         % compute max return portfolio weight
+
+[risk1, ret1] = estimatePortMoments(p_BL, w_maxSharpeRatio);   % compute the return and volatility of the initial portfolio
+[risk2, ret2] = estimatePortMoments(p_BL, w_sameReturn );    % compute the return and volatility of min risk portfolio
+[risk3, ret3] = estimatePortMoments(p_BL, w_sameRisk );      % compute the return and volatility of max return portfolio
 
 
 
@@ -274,7 +279,7 @@ tab2 = uitab(tabgp,'Title','Keep Return Portfolio Weight'); % Create tab
 columnname = {'Ticker','Weight (%)'};
 columnformat = {'char','numeric'};
 % Define the data as a cell array
-data = table2cell(table(symbol(w_new1>0),w_new1(w_new1>0)*100));
+data = table2cell(table(symbol(w_sameReturn>0),w_sameReturn(w_sameReturn>0)*100));
 % Create the uitable
 uit = uitable(tab2, 'Data', data, 'ColumnName', columnname,...
     'ColumnFormat', columnformat,'RowName',[]);
@@ -287,7 +292,7 @@ tab3 = uitab(tabgp,'Title','Keep Vol Portfolio Weight'); % Create tab
 columnname = {'Ticker','Weight (%)'};
 columnformat = {'char','numeric'};
 % Define the data as a cell array
-data = table2cell(table(symbol(w_new2>0),w_new2(w_new2>0)*100));
+data = table2cell(table(symbol(w_sameRisk>0),w_sameRisk(w_sameRisk>0)*100));
 % Create the uitable
 uit = uitable(tab3, 'Data', data,'ColumnName', columnname, 'ColumnFormat', columnformat,'RowName',[]);
 % Set width and height
@@ -299,7 +304,7 @@ tab4 = uitab(tabgp,'Title','Max Sharpe Ratio Portfolio Weight'); % Create tab
 columnname = {'Ticker','Weight (%)'};
 columnformat = {'char','numeric'};
 % Define the data as a cell array
-data = table2cell(table(symbol(w1>0),w1(w1>0)*100));
+data = table2cell(table(symbol(w_maxSharpeRatio>0),w_maxSharpeRatio(w_maxSharpeRatio>0)*100));
 % Create the uitable
 uit = uitable(tab4, 'Data', data,'ColumnName', columnname,...
     'ColumnFormat', columnformat,'RowName',[]);
